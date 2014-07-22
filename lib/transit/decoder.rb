@@ -24,6 +24,7 @@ module Transit
 
     GROUND_TAGS = %w[_ s ? i d b ' array map]
 
+    attr_reader :handlers, :default_handler
     def initialize(options={})
       custom_handlers = options[:handlers] || {}
       custom_handlers.each {|k,v| validate_handler(k,v)}
@@ -63,40 +64,6 @@ module Transit
             cache.write(parsed)
           end
           parsed
-        end
-      when Array
-        return node if node.empty?
-        e0 = decode(node.shift, cache, false)
-        if e0 == MAP_AS_ARRAY
-          decode(Hash[*node], cache)
-        elsif Tag === e0
-          v = decode(node.shift, cache)
-          if handler = @handlers[e0]
-            handler.from_rep(v)
-          else
-            @default_handler.from_rep(e0,v)
-          end
-        else
-          [e0] + node.map {|e| decode(e, cache, as_map_key)}
-        end
-      when Hash
-        if node.size == 1
-          k = decode(node.keys.first,   cache, true)
-          v = decode(node.values.first, cache, false)
-          if Tag === k
-            if handler = @handlers[k]
-              handler.from_rep(v)
-            else
-              @default_handler.from_rep(k,v)
-            end
-          else
-            {k => v}
-          end
-        else
-          node.keys.each do |k|
-            node.store(decode(k, cache, true), decode(node.delete(k), cache))
-          end
-          node
         end
       else
         node

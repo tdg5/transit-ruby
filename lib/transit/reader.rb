@@ -20,13 +20,72 @@ module Transit
     # @api private
     class JsonUnmarshaler
       class ParseHandler
-        def each(&block) @yield_v = block end
-        def add_value(v) @yield_v[v] if @yield_v end
+        def initialize(decoder)
+          @cache = RollingCache.new
+          @decoder = decoder
+        end
 
-        def hash_start()      {} end
-        def hash_set(h,k,v)   h.store(k,v) end
-        def array_start()     [] end
-        def array_append(a,v) a << v end
+        def each(&block)  @yield_v = block end
+        def hash_start()  {} end
+        def array_start() [] end
+
+        def add_value(v)
+          if @yield_v
+            @yield_v[decode(v, false)]
+          end
+        end
+
+        def decode(v, as_map_key)
+#          puts "********** decode"
+#          p v, as_map_key
+          case v
+          when Array
+            case k = v.first
+            when MAP_AS_ARRAY
+              decode(Hash[*v[1..-1]], as_map_key)
+            when Decoder::Tag
+              if handler = @decoder.handlers[k]
+                handler.from_rep(v[1])
+              else
+                @decoder.default_handler.from_rep(k,v[1])
+              end
+            else
+              v
+            end
+          when Hash
+            if Decoder::Tag === (tag = v.keys.first)
+              val = v.values.first
+              if handler = @decoder.handlers[tag]
+                handler.from_rep(val)
+              else
+                @decoder.default_handler.from_rep(tag,val)
+              end
+            else
+              v
+            end
+          else
+            @decoder.decode(v, @cache, as_map_key)
+          end
+        end
+
+        def hash_set(h,k,v)
+#          puts "********** hash_set"
+#          p h,k,v
+          h.store(decode(k, true), decode(v, false))
+        end
+
+        def array_append(a,v)
+#          puts "********** array_append"
+#          p a,v
+          case a.size
+          when 0
+            a << decode(v, true)
+          when 1
+            a << decode(v, MAP_AS_ARRAY == a[0])
+          else
+            a << decode(v, false)
+          end
+        end
 
         def error(message, line, column)
           raise Exception.new(message, line, column)
@@ -36,7 +95,7 @@ module Transit
       def initialize(io, opts)
         @io = io
         @decoder = Transit::Decoder.new(opts)
-        @parse_handler = ParseHandler.new
+        @parse_handler = ParseHandler.new(@decoder)
       end
 
       # @see Reader#read
