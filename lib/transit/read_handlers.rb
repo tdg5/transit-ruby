@@ -28,7 +28,10 @@ module Transit
       def from_rep(v) v == "t" end
     end
     class ByteArrayHandler
-      def from_rep(v) ByteArray.from_base64(v) end
+      def initialize(encoding=nil)
+        @encoding = encoding || Encoding.default_external
+      end
+      def from_rep(v) ByteArray.from_base64(v).force_encoding(@encoding) end
     end
     class FloatHandler
       def from_rep(v) Float(v) end
@@ -83,11 +86,13 @@ module Transit
       def from_rep(v) Rational(v[0], v[1]) end
     end
 
+    # NOTE: this excludes the ByteArrayHandler which gets generated at
+    # Decoder construction time in order to support user configuration
+    # of encoding for ByteArrays
     DEFAULT_READ_HANDLERS = {
       "_" => NilHandler.new,
       ":" => KeywordHandler.new,
       "?" => BooleanHandler.new,
-      "b" => ByteArrayHandler.new,
       "d" => FloatHandler.new,
       "i" => IntegerHandler.new,
       "n" => BigIntegerHandler.new,

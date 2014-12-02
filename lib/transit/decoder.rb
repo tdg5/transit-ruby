@@ -27,7 +27,10 @@ module Transit
     def initialize(options={})
       custom_handlers = options[:handlers] || {}
       custom_handlers.each {|k,v| validate_handler(k,v)}
-      @handlers = ReadHandlers::DEFAULT_READ_HANDLERS.merge(custom_handlers)
+      @handlers = ReadHandlers::DEFAULT_READ_HANDLERS.
+        merge("b" => Transit::ReadHandlers::ByteArrayHandler.new(options[:byte_array_encoding])).
+        merge(custom_handlers)
+
       @default_handler = options[:default_handler] || ReadHandlers::DEFAULT_READ_HANDLER
     end
 

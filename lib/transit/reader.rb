@@ -50,7 +50,8 @@ module Transit
     #   # ^^ reads both :json and :json_verbose formats ^^
     #   msgpack_writer              = Transit::Reader.new(:msgpack, io)
     #   writer_with_custom_handlers = Transit::Reader.new(:json, io,
-    #     :handlers => {"point" => PointReadHandler})
+    #     :handlers => {"point" => PointReadHandler},
+    #     :byte_array_encoding => "utf-8")
     #
     # @see Transit::ReadHandlers
     def initialize(format, io, opts={})

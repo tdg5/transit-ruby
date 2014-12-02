@@ -67,6 +67,11 @@ module Transit
       Base64.encode64(@value)
     end
 
+    def force_encoding(enc)
+      @value.force_encoding(enc)
+      self
+    end
+
     def to_s
       @value
     end

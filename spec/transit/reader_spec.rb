@@ -160,6 +160,35 @@ module Transit
           assert { reader.read == expected }
         end
       end
+
+      describe 'ByteArray encoding' do
+        let(:byte_array) { ByteArray.new("doesn't matter") }
+        let(:out)        { StringIO.new("","w+") }
+        let(:writer)     { Writer.new(:json, out) }
+
+        it 'defaults to the default_external encoding' do
+          writer.write(byte_array)
+          reader = Reader.new(:json, StringIO.new(out.string))
+          round_tripped = reader.read
+          assert { round_tripped.to_s.encoding == Encoding.default_external }
+        end
+
+        it 'can be overridden with Shift_JIS' do
+          writer.write(byte_array)
+          reader = Reader.new(:json, StringIO.new(out.string),
+                                   :byte_array_encoding => "Shift_JIS")
+          round_tripped = reader.read
+          assert { round_tripped.to_s.encoding == Encoding.find("Shift_JIS") }
+        end
+
+        it 'can be overridden with utf-8' do
+          writer.write(byte_array)
+          reader = Reader.new(:json, StringIO.new(out.string),
+                                   :byte_array_encoding => "UTF-8")
+          round_tripped = reader.read
+          assert { round_tripped.to_s.encoding == Encoding.find("UTF-8") }
+        end
+      end
     end
   end
 end
